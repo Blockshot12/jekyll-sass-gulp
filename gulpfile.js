@@ -2,15 +2,15 @@
  * Gulpfile.
  *
  * Implements:
- * 			1. Sass to CSS conversion + uglify
+ * 			1. Sass + Postcss
  * 			2. JS concatenation + uglify
  *      3. Vendor JS concatenation + uglify
- *      4. Images minify
- *      5. Fonts minify
- *      6. TWIG files
- *      7. Drush Cache Rebuild
- *      8. Browser-Sync
- * 			9. Watch files
+ *      4. Images minification
+ *      5. Fonts minification
+ *      6. Jekyll build & watch
+ *      7. Build with Gulp & Jekyll
+ *      8. Browser-Sync & watch files
+ *      9. Default Gulp task
  *
  * @since 1.0.0
  * @author Blockshot
@@ -19,7 +19,7 @@
 /**
  * Configuration: Project variables
  *
- * The projectUrl contains the local URL, example.dd:8083.
+ * The projectUrl contains the local URL, example:4000.
  */
 const project = 'My_site';
 const projectUrl = 'http://localhost:4000/';
@@ -41,8 +41,8 @@ const htmlDest = siteRoot;
 const imgSrc = 'img/**/*';
 const imgDest = siteRoot + '/img/';
 
-const fontSrc = siteRoot + '/font/**/*';
-const fontDest = siteRoot + '/font/';
+const fontSrc = siteRoot + '/fonts/**/*';
+const fontDest = siteRoot + '/fonts/';
 
 const jekyllSrc = ['**/*.html','**/*.yml','**/*.json','!_site/**'];
 
@@ -50,22 +50,26 @@ const jekyllSrc = ['**/*.html','**/*.yml','**/*.json','!_site/**'];
 /**
  * Configuration: Load plugins
  */
-const autoprefixer = require('gulp-autoprefixer');
+//const autoprefixer = require('gulp-autoprefixer');
+const autoprefixer = require('autoprefixer');
 const cache = require('gulp-cache');
 const child = require('child_process');
 const concat = require('gulp-concat');
+const cssnano = require('cssnano');
+const del = require('del');
 const fontmin = require('gulp-fontmin');
 const flatten = require('gulp-flatten');
 const gulp = require('gulp');
 const htmlmin = require('gulp-htmlmin');
 const imagemin = require('gulp-imagemin');
-const minifycss = require('gulp-uglifycss');
+const lost = require('lost');
 const notify = require('gulp-notify');
 const path = require('path');
 const plumber = require('gulp-plumber');
+const postcss = require('gulp-postcss');
 const rename = require('gulp-rename');
+const rucksack = require('rucksack-css');
 const sass = require('gulp-sass');
-const shell = require('gulp-shell');
 const sourcemaps = require('gulp-sourcemaps');
 const uglify = require('gulp-uglify');
 const util = require('gulp-util');
@@ -73,11 +77,12 @@ const util = require('gulp-util');
 const browserSync = require('browser-sync');
 const reload = browserSync.reload;
 
+
 /**
- * Task: Compile, minify and rename all Sass files to style.min.css.
+ * Task: Compile, minify & rename all Sass files to style.min.css.
  */
 gulp.task('sass', () => {
-  let onError = function(error) {
+  var onError = function(error) {
     notify.onError({
       title: '<%= error.message %>',
       sound: 'Frog',
@@ -89,36 +94,27 @@ gulp.task('sass', () => {
 
     this.emit('end');
   };
-  return gulp.src(sassSrc)
+  return gulp.src(sassSrc, { sourcemaps: true })
     .pipe(plumber({
       errorHandler: onError
-    }))
-    .pipe(sourcemaps.init())
-    .pipe(sass({
-      style: 'compressed',
-      precision: 10
-    }))
-    .pipe(sourcemaps.write({
-      includeContent: false
     }))
     .pipe(sourcemaps.init({
       loadMaps: true
     }))
-    .pipe(autoprefixer(
-      'last 2 version',
-      '> 1%',
-      'safari 5',
-      'ie 8',
-      'ie 9',
-      'opera 12.1',
-      'ios 6',
-      'android 4'))
-    .pipe(sourcemaps.write('./'))
+    .pipe(sass())
+    .pipe(postcss([
+      lost,
+      rucksack,
+      autoprefixer({browsers:['last 5 versions']})
+    ]))
     .pipe(gulp.dest(sassDest))
     .pipe(rename({
       suffix: '.min'
     }))
-    .pipe(minifycss())
+    .pipe(postcss([
+      cssnano
+    ]))
+    .pipe(sourcemaps.write('./'))
     .pipe(gulp.dest(sassDest))
     .pipe(reload({
       stream: true,
@@ -126,7 +122,7 @@ gulp.task('sass', () => {
     }))
     .pipe(notify({
       title: 'Sass task completed',
-      message: 'All Sass files are compiled into CSS and minified.',
+      message: 'All Sass files are compiled into CSS & minified.',
       sound: 'Submarine',
       icon: path.join(__dirname, 'help/check.png'),
       contentImage: path.join(__dirname, 'help/sass.png'),
@@ -136,10 +132,10 @@ gulp.task('sass', () => {
 });
 
 /**
- * Task: JS
+ * Task: Concat, rename &  minify all JS files to scripts.min.js.
  */
 gulp.task('js', function() {
-  let onError = function(error) {
+  var onError = function(error) {
     notify.onError({
       title: '<%= error.message %>',
       sound: 'Frog',
@@ -155,6 +151,10 @@ gulp.task('js', function() {
     .pipe(plumber({
       errorHandler: onError
     }))
+
+    .pipe(sourcemaps.init({
+      loadMaps: true
+    }))
     .pipe(concat(jsFile + '.js'))
     .pipe(gulp.dest(jsDest))
     .pipe(rename({
@@ -162,6 +162,7 @@ gulp.task('js', function() {
       suffix: '.min'
     }))
     .pipe(uglify())
+    .pipe(sourcemaps.write('./'))
     .pipe(gulp.dest(jsDest))
     .pipe(reload({
       stream: true,
@@ -169,7 +170,7 @@ gulp.task('js', function() {
     }))
     .pipe(notify({
       title: 'JS task completed',
-      message: 'All JS files are saved and minified.',
+      message: 'All JS files are saved & minified.',
       sound: 'Submarine',
       icon: path.join(__dirname, 'help/check.png'),
       contentImage: path.join(__dirname, 'help/js.png'),
@@ -182,7 +183,7 @@ gulp.task('js', function() {
  * Task: Minify all HTML files.
  */
 gulp.task('html', () => {
-  let onError = function(error) {
+  var onError = function(error) {
     notify.onError({
       title: '<%= error.message %>',
       sound: 'Frog',
@@ -228,13 +229,35 @@ gulp.task('img', function() {
     }))
     .pipe(notify({
       title: 'Images task completed',
-      message: 'All images are saved and minified.',
+      message: 'All images are saved & minified.',
       sound: 'Submarine',
       icon: path.join(__dirname, 'help/check.png'),
       contentImage: path.join(__dirname, 'help/img.png'),
       time: 1000,
       onLast: true
     }));
+});
+
+/**
+ * Task: Minify all font files.
+ */
+gulp.task('fontmin', function() {
+  return gulp.src(fontSrc)
+    .pipe(fontmin())
+    .pipe(gulp.dest(fontDest))
+    .pipe(reload({
+      stream: true,
+      once: true
+    }))
+    .pipe(notify({
+      title: 'Fonts task completed',
+      message: 'All fonts are saved and minified.',
+      sound: 'Submarine',
+      icon: path.join(__dirname, 'help/check.png'),
+      contentImage: path.join(__dirname, 'help/font.png'),
+      time: 1000,
+      onLast: true
+    }))
 });
 
 /**
@@ -258,17 +281,12 @@ gulp.task('jekyll', () => {
   jekyll.stderr.on('data', jekyllLogger);
 });
 
+
 /**
- * Task: Watch al files with Gulp and Jekyll.
+ * Task: Build al files with Gulp & Jekyll.
  */
 gulp.task('build', ['sass','js','img','jekyll']);
 
-/**
- * Task: Watch al files with Gulp and Jekyll.
- */
-gulp.task('watch', function() {
-
-});
 
 /**
  * Task: Run Browser-Sync on siteRoot.
@@ -282,13 +300,22 @@ gulp.task('serve', () => {
     }
   });
 
-  //gulp.watch(sassSrc, ['sass']);
-  //gulp.watch(jsSrc, ['js']);
-  //gulp.watch(imgSrc, ['img']);
+  gulp.watch(sassSrc, ['sass']);
+  gulp.watch(jsSrc, ['js']);
   gulp.watch(htmlSrc, ['html']);
+  gulp.watch(imgSrc, ['img']);
+  gulp.watch(fontSrc, ['font']);
 });
+
+/**
+ * Task: Delete all build files inside siteRoot.
+ */
+gulp.task('clean', function() {
+  return del([siteRoot + '/**/*']);
+});
+
 
 /**
  * Task: Run this Gulpfile.
  */
-gulp.task('default', ['build','jekyll','serve']);
+gulp.task('default', [build','jekyll','serve']);
