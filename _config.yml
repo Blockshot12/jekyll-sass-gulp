@@ -33,3 +33,4 @@ exclude:
   - gulpfile.js
   - help
   - css
+  - js

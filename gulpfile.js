@@ -243,6 +243,7 @@ gulp.task('img', function() {
 gulp.task('jekyll', () => {
   const jekyll = child.spawn('jekyll', [
     'build',
+    '--watch',
     //'--incremental',
     '--drafts'
   ]);
@@ -258,6 +259,18 @@ gulp.task('jekyll', () => {
 });
 
 /**
+ * Task: Watch al files with Gulp and Jekyll.
+ */
+gulp.task('build', ['sass','js','img','jekyll']);
+
+/**
+ * Task: Watch al files with Gulp and Jekyll.
+ */
+gulp.task('watch', function() {
+
+});
+
+/**
  * Task: Run Browser-Sync on siteRoot.
  */
 gulp.task('serve', () => {
@@ -268,12 +281,14 @@ gulp.task('serve', () => {
       baseDir: siteRoot
     }
   });
-});
 
-gulp.task('watch', function() {
-  gulp.watch(sassSrc, ['sass']);
-  gulp.watch(jsSrc, ['js']);
-  gulp.watch(imgSrc, ['img']);
-  gulp.watch(jekyllSrc, ['jekyll']);
+  //gulp.watch(sassSrc, ['sass']);
+  //gulp.watch(jsSrc, ['js']);
+  //gulp.watch(imgSrc, ['img']);
   gulp.watch(htmlSrc, ['html']);
 });
+
+/**
+ * Task: Run this Gulpfile.
+ */
+gulp.task('default', ['build','jekyll','serve']);
