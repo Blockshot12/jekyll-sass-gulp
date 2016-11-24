@@ -44,6 +44,8 @@ const imgDest = siteRoot + '/img/';
 const fontSrc = siteRoot + '/font/**/*';
 const fontDest = siteRoot + '/font/';
 
+const jekyllSrc = ['**/*.html','**/*.yml','**/*.json','!_site/**'];
+
 
 /**
  * Configuration: Load plugins
@@ -88,7 +90,6 @@ gulp.task('sass', () => {
     this.emit('end');
   };
   return gulp.src(sassSrc)
-    .pipe(watch(sassSrc))
     .pipe(plumber({
       errorHandler: onError
     }))
@@ -271,5 +272,8 @@ gulp.task('serve', () => {
 
 gulp.task('watch', function() {
   gulp.watch(sassSrc, ['sass']);
+  gulp.watch(jsSrc, ['js']);
   gulp.watch(imgSrc, ['img']);
+  gulp.watch(jekyllSrc, ['jekyll']);
+  gulp.watch(htmlSrc, ['html']);
 });
