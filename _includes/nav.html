@@ -1,7 +1,13 @@
 <nav>
 	<ul>
-		<li><a href="#">Home</a></li>
-		<li><a href="#">About</a></li>
-		<li><a href="#">Contact</a></li>
+		<li>
+			<a class="{% if page.url == '/' %}is-active{% endif %}" href="{{ site.baseurl }}/">Home</a>
+		</li>
+		<li>
+			<a class="{% if page.url == '/about/' %}is-active{% endif %}" href="{{ site.baseurl }}/about/">About</a>
+		</li>
+		<li>
+			<a class="{% if page.url == '/contact/' %}is-active{% endif %}" href="{{ site.baseurl }}/contact/">Contact</a>
+		</li>
 	</ul>
 </nav>
