@@ -318,4 +318,4 @@ gulp.task('clean', function() {
 /**
  * Task: Run this Gulpfile.
  */
-gulp.task('default', [build','jekyll','serve']);
+gulp.task('default', ['build','jekyll','serve']);
