@@ -1,0 +1,25 @@
+---
+layout: default
+title: Data example
+pagetitle: This is an example of data use!
+sitemap: true
+changefreq: weekly
+priority: 0.8
+---
+
+<section>
+	{% for item in site.data.data-example %}
+		<article>
+			<h2>{{ item.title }}</h2>
+			{% if item.subtitle %}
+			<p><strong>{{ item.subtitle }}</strong></p>
+			{% endif %}
+			<p>{{ item.text }}</p>
+			<ul>
+				{% for subitem in item.list %}
+					<li>{{ subitem.title }}</li>
+				{% endfor %}
+			</ul>
+		</article>
+	{% endfor %}
+</section>
