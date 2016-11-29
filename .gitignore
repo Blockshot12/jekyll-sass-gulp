@@ -33,9 +33,7 @@ Thumbs.db
 # Build Systems #
 #################
 node_modules/
-package.json
 bower_components/
-bower.json
 .jshintrc
 .sass-cache
 .sass-lint.yml
